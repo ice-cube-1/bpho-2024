@@ -3,7 +3,7 @@ import math
 
 g = 10
 fractions=100
-h=5
+h=2
 
 def yfromx(theta,g,x,h):
     return round(x*math.tan(theta)-(g*x**2)/(2*u**2*math.cos(theta)**2)+h,5)
@@ -23,6 +23,22 @@ def distance(theta, u, g, r):
     c = math.tan(theta)-g*r*(1+(math.tan(theta))**2)/(u**2)
     return a*( z_func(b)-z_func(c))
 
+def bounceVerlet(theta, u, N, c):
+    n,nbounce,dt = 0,0,0.02
+    positions=[[0,h]]
+    velocities=[[u*math.sin(theta), u*math.cos(theta)]]
+    while nbounce <= N:
+        positions.append([positions[n][0]+velocities[n][0]*dt,
+                          positions[n][1]+velocities[n][1]*dt+0.5*-g*dt**2])
+        velocities.append([velocities[n][0],
+                           velocities[n][1]+0.5*dt*(-2*g)])
+        if positions[n+1][1] < 0:
+            positions[n+1][1] = 0
+            velocities[n+1][1] = -c*velocities[n+1][1]
+            nbounce+=1
+        n+=1
+    plt.plot([i[0] for i in positions],[i[1] for i in positions])
+            
 
 def line(theta,u):
     data=[]
@@ -64,19 +80,21 @@ def bound(u):
 X = 2
 Y = 2
 u=10
-theta=math.radians(70.55)
-line(theta,u)
-theta=math.radians(78)
-line(theta,u)
-theta=math.radians(85)
-line(theta,u)
-theta = thetaFromU(u,X,Y)
-line(theta[0],u) # high ball
-line(theta[1],u) # low ball
-theta = math.asin(1/(math.sqrt(2+((2*g*h)/u**2))))
-line(theta,u)
-bound(u)
-u = math.sqrt(g)*math.sqrt(Y+math.sqrt(X**2+Y**2)) # minimum u
-theta = thetaFromU(u,X,Y)
-line(theta[0],u)
+theta=math.radians(30)
+bounceVerlet(90-theta,u,5,0.8)
+# theta=math.radians(70.55)
+# line(theta,u)
+# theta=math.radians(78)
+# line(theta,u)
+# theta=math.radians(85)
+# line(theta,u)
+# theta = thetaFromU(u,X,Y)
+# line(theta[0],u) # high ball
+# line(theta[1],u) # low ball
+# theta = math.asin(1/(math.sqrt(2+((2*g*h)/u**2))))
+# line(theta,u)
+# bound(u)
+# u = math.sqrt(g)*math.sqrt(Y+math.sqrt(X**2+Y**2)) # minimum u
+# theta = thetaFromU(u,X,Y)
+# line(theta[0],u)
 plt.show()
