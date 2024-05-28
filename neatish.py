@@ -1,7 +1,11 @@
+import tkinter as tk
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import math
 
 g = 10
+t = 45
+lines = [{'g': g, 't': t}]
 
 def yfromx(theta,g,x,h,u):
     return round(x*math.tan(theta)-(g*x**2)/(2*u**2*math.cos(theta)**2)+h,5)
@@ -79,7 +83,6 @@ def plot(g, h=0, u=None, thetas=None, showMinMax=False, X=None, Y=None, bounce=0
                 "Distance": distance(theta,u,g,rng)}
         if bounce==False and k == 0: data = line(theta,u,rng,h)
         else: data = bounceVerlet(theta, u, bounce, bounceConstant, k, h)
-        print(data)
         plt.plot([i[0] for i in data],[i[1] for i in data])
         [print(i,round(outval[i],3)) for i in outval]
         if theta >= math.asin(2*math.sqrt(2)/3) and showMinMax == True:
@@ -102,5 +105,44 @@ def bound(u,h):
         data.append((x,y))
     plt.plot([i[0] for i in data],[i[1] for i in data])
 
-plot(g, thetas=(range(45,90,5)),u=2,h=0)
-plt.show()
+def update_plot():
+    print(lines,'pre-change')
+    lines[-1]['g'] = float(g_entry.get())
+    lines[-1]['t'] = float(t_entry.get())
+    print(lines)
+    plt.clf()  # Clear the existing plot
+    for i in lines:
+        plot(i['g'], thetas=(i['t'],), u=2, h=0)
+    canvas.draw()
+
+def save_line():
+    print(lines, 'saved')
+    lines.append({'g':lines[-1]['g'], 't': lines[-1]['t']})
+
+# Create a Tkinter window
+root = tk.Tk()
+root.title("Projectile Motion Plot")
+
+# Create a FigureCanvasTkAgg widget
+fig, ax = plt.subplots()
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas.get_tk_widget().pack()
+
+# Call your plot function with initial parameters
+plot(g, thetas=(t,), u=2, h=0)
+
+g_label = tk.Label(root, text="Acceleration due to gravity (g):")
+g_label.pack()
+g_entry = tk.Entry(root)
+g_entry.insert(0, str(g))
+g_entry.pack()
+t_label = tk.Label(root, text="Theta:")
+t_label.pack()
+t_entry = tk.Entry(root)
+t_entry.insert(0, str(t))
+t_entry.pack()
+update_button = tk.Button(root, text="Update Plot", command=update_plot)
+update_button.pack()
+save_button = tk.Button(root, text="Save Line", command=save_line)
+save_button.pack()
+root.mainloop()
