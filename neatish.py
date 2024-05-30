@@ -5,7 +5,10 @@ import math
 
 g = 10
 t = 45
-lines = [{'g': g, 't': t}]
+u = 2
+h = 0
+X,Y = 0,0
+lines = [{'g': g, 't': t, 'u': u, 'h': h}]
 
 def yfromx(theta,g,x,h,u):
     return round(x*math.tan(theta)-(g*x**2)/(2*u**2*math.cos(theta)**2)+h,5)
@@ -62,16 +65,9 @@ def line(theta,u, rng,h):
         data.append((x,y))
     return data
 
-def plot(g, h=0, u=None, thetas=None, showMinMax=False, X=None, Y=None, bounce=0, k=0, bounceConstant=0):
-    if thetas == None:
-        if u == None:
-            u = minU(g,X,Y)
-            thetas = thetaFromU(u,X,Y,h)
-        else:
-            if X == None: thetas = (maxRange(g,h,u),)
-            else: thetas = thetaFromU(u,X,Y,h)
-    else: thetas=tuple([math.radians(i) for i in thetas])
+def plot(g, h, u, thetas, showMinMax=False, bounce=0, k=0, bounceConstant=0):
     for theta in thetas:
+        print('you are not a tuple',theta)
         rng = ((u*math.sin(theta)+math.sqrt(2*h*g+(u*math.sin(theta))**2))/g)*u*math.cos(theta)
         outval={"Theta (rad)":theta,
                 "Theta (deg)":math.degrees(theta),
@@ -106,29 +102,36 @@ def bound(u,h):
     plt.plot([i[0] for i in data],[i[1] for i in data])
 
 def update_plot():
-    print(lines,'pre-change')
-    lines[-1]['g'] = float(g_entry.get())
-    lines[-1]['t'] = float(t_entry.get())
-    print(lines)
-    plt.clf()  # Clear the existing plot
+    g,t,u,h,X,Y = float(g_entry.get()),t_entry.get(),u_entry.get(),h_entry.get(),x_entry.get(),y_entry.get()
+    if h == '': h=0
+    else: 
+        h = float(h)
+        lines[-1]['h'] = h
+    if t == '':
+        if u == '':
+            lines[-1]['u'] = minU(g,float(X),float(Y))
+            lines[-1]['t'] = thetaFromU(u,float(X),float(Y),h)
+        else:
+            u = float(u)
+            if X == '': lines[-1]['t'] = (maxRange(g,h,u),)
+            else: lines[-1]['t'] = thetaFromU(u,float(X),float(Y),h)
+            lines[-1]['u'] = u
+    else: lines[-1]['t'] = (math.radians(float(t)),)
+    plt.clf()
     for i in lines:
-        plot(i['g'], thetas=(i['t'],), u=2, h=0)
+        plot(i['g'], thetas=i['t'], u=i['u'], h=i['h'])
     canvas.draw()
 
 def save_line():
-    print(lines, 'saved')
-    lines.append({'g':lines[-1]['g'], 't': lines[-1]['t']})
+    lines.append({'g':lines[-1]['g'], 't': lines[-1]['t'], 'u': lines[-1]['u'], 'h': lines[-1]['h']})
 
-# Create a Tkinter window
 root = tk.Tk()
 root.title("Projectile Motion Plot")
 
-# Create a FigureCanvasTkAgg widget
 fig, ax = plt.subplots()
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().pack()
 
-# Call your plot function with initial parameters
 plot(g, thetas=(t,), u=2, h=0)
 
 g_label = tk.Label(root, text="Acceleration due to gravity (g):")
@@ -141,6 +144,26 @@ t_label.pack()
 t_entry = tk.Entry(root)
 t_entry.insert(0, str(t))
 t_entry.pack()
+u_label = tk.Label(root, text="U:")
+u_label.pack()
+u_entry = tk.Entry(root)
+u_entry.insert(0, str(u))
+u_entry.pack()
+h_label = tk.Label(root, text="H:")
+h_label.pack()
+h_entry = tk.Entry(root)
+h_entry.insert(0, str(h))
+h_entry.pack()
+x_label = tk.Label(root, text="X:")
+x_label.pack()
+x_entry = tk.Entry(root)
+x_entry.insert(0, str(X))
+x_entry.pack()
+y_label = tk.Label(root, text="Y:")
+y_label.pack()
+y_entry = tk.Entry(root)
+y_entry.insert(0, str(Y))
+y_entry.pack()
 update_button = tk.Button(root, text="Update Plot", command=update_plot)
 update_button.pack()
 save_button = tk.Button(root, text="Save Line", command=save_line)
