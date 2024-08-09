@@ -41,19 +41,22 @@ class Line():
         plt.plot([i[0] for i in data], [i[1] for i in data])
 
     def print_info(self) -> None:
-        print(self.minmax)
+        text_output.delete(1.0, tk.END)
+        text_output.insert(tk.END, f"MinMax: {self.minmax}\n")
         for t in self.t:
             outval: dict[str, float] = {"t (rad)": t, "t (deg)": math.degrees(t), "U": self.u,
                                         "VX": math.cos(t)*self.u, "VY": math.sin(t)*self.u,
                                         "ToF": self.getRange(t)/(self.u*math.cos(t)), "Range": self.getRange(t),
                                         "Distance": self.distance(t)}
-            [print(i, round(outval[i], 3)) for i in outval]
+            for i in outval:
+                text_output.insert(tk.END, f"{i}: {round(outval[i], 3)}\n")
             if t >= math.asin(2*math.sqrt(2)/3) and self.minmax == 1:
                 times = (((3*self.u)/(2*self.g))*(math.sin(t)+math.sqrt(math.sin(t)**2-(8/9))),
                          ((3*self.u)/(2*self.g))*(math.sin(t)-math.sqrt(math.sin(t)**2-(8/9))))
                 for time in times:
                     x = self.u*time*math.cos(t); y = self.yfromx(t, x)
-                    plt.plot(x,y,marker="x"); print("Turning point t/rng:", x, y)
+                    plt.plot(x,y,marker="x")
+                    text_output.insert(tk.END, f"Turning point t/rng: {x}, {y}\n")
 
     def line(self, t: float) -> list[tuple[float, float]]:
         data: list[tuple[float, float]] = []
@@ -96,6 +99,7 @@ class Line():
     def maxRange(self): return math.asin(1/(math.sqrt(2+((2*self.g*self.h)/self.u**2))))
     def z_func(self, z: float) -> float: return 0.5*math.log(abs(math.sqrt(1+z**2)+z))+0.5*z*math.sqrt(1+z**2)
 
+
 def save_line(): lines.append(Line(input_str, minmax.get()))
 def reset_lines(): [lines.remove(lines[0]) for i in lines[:-1]]
 def update_plot():
@@ -125,35 +129,51 @@ def pack(topack: list[str]):
     for i in topack:
         entry_labels[i][0].pack()
         entry_labels[i][1].pack()
-        
+
 input_str: dict[str, str] = {'g': '10', 't': '45', 'u': '2', 'h': '0', 'X': '', 'Y': '', 'N': '', 'k': '', 'c': ''}
 root = tk.Tk()
 root.title("Projectile Motion Plot")
 fig, ax = plt.subplots()
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().pack()
-options = tk.IntVar(value=1)
-lines: list[Line] = [Line(input_str, 0)]; entry_labels: dict[str, list] = {}
-r1 = tk.Radiobutton(root, text="Path with angle / velocity", value=1, variable=options, command=lambda: toggle_inputs(options.get())).pack()
-r2 = tk.Radiobutton(root, text="Minimum velocity to pass through XY", value=2, variable=options, command=lambda: toggle_inputs(options.get())).pack()
-r3 = tk.Radiobutton(root, text="Maximum range for a given speed", value=3, variable=options, command=lambda: toggle_inputs(options.get())).pack()
-r4 = tk.Radiobutton(root, text="Angle to pass through XY at a given speed", value=4, variable=options, command=lambda: toggle_inputs(options.get())).pack()
 
-for i in input_str:
-    label = tk.Label(root, text=f'{i}:')
-    label.pack()
-    entry = tk.Entry(root)
-    entry.insert(0, str(input_str[i]))
-    entry.pack()
-    entry_labels[i] = [label, entry]
+frame_left = tk.Frame(root)
+frame_center = tk.Frame(root)
+frame_right = tk.Frame(root)
+
+frame_left.pack(side=tk.LEFT, padx=10, pady=10, anchor="n")
+frame_center.pack(side=tk.LEFT, padx=10, pady=10, anchor="n")
+frame_right.pack(side=tk.LEFT, padx=10, pady=10, anchor="n")
+
+options = tk.IntVar(value=1)
+lines: list[Line] = [Line(input_str, 0)]
+entry_labels: dict[str, list] = {}
+
+r1 = tk.Radiobutton(frame_left, text="Path with angle / velocity", value=1, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
+r2 = tk.Radiobutton(frame_left, text="Minimum velocity to pass through XY", value=2, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
+r3 = tk.Radiobutton(frame_left, text="Maximum range for a given speed", value=3, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
+r4 = tk.Radiobutton(frame_left, text="Angle to pass through XY at a given speed", value=4, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
 
 minmax = tk.IntVar()
-checkbutton = tk.Checkbutton(root, text="Show local minmax (if applicable)", variable=minmax, onvalue=1, offvalue=0).pack()
-update_button = tk.Button(root, text="Update Plot", command=update_plot).pack()
-save_button = tk.Button(root, text="Save Line", command=save_line).pack()
-reset_button = tk.Button(root, text="Reset Lines", command=reset_lines).pack()
+checkbutton = tk.Checkbutton(frame_left, text="Show local minmax (if applicable)", variable=minmax, onvalue=1, offvalue=0, bg=root.cget("bg")).pack(anchor="w")
 bounce_verlet = tk.IntVar()
-bounce_verlet_checkbox = tk.Checkbutton(root, text="Bounce Verlet", variable=bounce_verlet, onvalue=1, offvalue=0, command=toggle_inputs)
-bounce_verlet_checkbox.pack()
+bounce_verlet_checkbox = tk.Checkbutton(frame_left, text="Bounce Verlet", variable=bounce_verlet, onvalue=1, offvalue=0, command=toggle_inputs, bg=root.cget("bg")).pack(anchor="w")
+
+update_button = tk.Button(frame_left, text="Update Plot", command=update_plot, bg=root.cget("bg")).pack(anchor="w")
+save_button = tk.Button(frame_left, text="Save Line", command=save_line, bg=root.cget("bg")).pack(anchor="w")
+reset_button = tk.Button(frame_left, text="Reset Lines", command=reset_lines, bg=root.cget("bg")).pack(anchor="w")
+
+# Add labels and entries to the center frame
+for i in input_str:
+    label = tk.Label(frame_center, text=f'{i}:')
+    label.pack(anchor="w")
+    entry = tk.Entry(frame_center, bg=root.cget("bg"))
+    entry.insert(0, str(input_str[i]))
+    entry.pack(anchor="w")
+    entry_labels[i] = [label, entry]
+
+text_output = tk.Text(frame_right, height=25, width=40, bd=0, bg=root.cget("bg"))
+text_output.pack()
+
 
 root.mainloop()
