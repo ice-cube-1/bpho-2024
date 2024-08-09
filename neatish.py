@@ -5,8 +5,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import math
 
 class Line():
-    def __init__(self, input_str: dict[str, str], minmax: int) -> None:
-        self.g: float = float(input_str['g']); self.minmax: int = minmax            
+    def __init__(self, input_str: dict[str, str], minmax: int, bound: int) -> None:
+        self.g: float = float(input_str['g']); self.minmax: int = minmax; self.bound: int = bound          
         self.k: float = 0 if input_str['k'] == '' else float(input_str['k'])
         self.N: float = 0 if input_str['N'] == '' else float(input_str['N'])
         self.c: float = 0 if input_str['c'] == '' else float(input_str['c'])
@@ -23,15 +23,17 @@ class Line():
         else: 
             self.u = float(input_str['u'])
             self.t: tuple = self.tFromU(float(input_str['X']), float(input_str['Y']))
-
     def plot(self) -> None:
         for t in self.t:
             if bounce_verlet.get() != 1: data: list[tuple[float, float]] = self.line(t)
             else: data: list[tuple[float, float]] = self.bounceVerlet(t)
             self.getRange(t)
             plt.plot([i[0] for i in data], [i[1] for i in data])
+            if self.bound == 1:
+                self.boundParabola()
 
-    def bound(self) -> None:
+
+    def boundParabola(self) -> None:
         y: float = self.h; x: float = 0
         data: list[tuple[float, float]] = []
         while y >= 0:
@@ -100,11 +102,11 @@ class Line():
     def z_func(self, z: float) -> float: return 0.5*math.log(abs(math.sqrt(1+z**2)+z))+0.5*z*math.sqrt(1+z**2)
 
 
-def save_line(): lines.append(Line(input_str, minmax.get()))
+def save_line(): lines.append(Line(input_str, minmax.get(), bound_value.get()))
 def reset_lines(): [lines.remove(lines[0]) for i in lines[:-1]]
 def update_plot():
     for i in input_str: input_str[i] = entry_labels[i][1].get()
-    lines[-1] = Line(input_str, minmax.get())
+    lines[-1] = Line(input_str, minmax.get(), bound_value.get())
     plt.clf()
     for i in lines: i.plot(); i.print_info()
     canvas.draw()
@@ -146,7 +148,7 @@ frame_center.pack(side=tk.LEFT, padx=10, pady=10, anchor="n")
 frame_right.pack(side=tk.LEFT, padx=10, pady=10, anchor="n")
 
 options = tk.IntVar(value=1)
-lines: list[Line] = [Line(input_str, 0)]
+lines: list[Line] = [Line(input_str, 0, 0)]
 entry_labels: dict[str, list] = {}
 
 r1 = tk.Radiobutton(frame_left, text="Path with angle / velocity", value=1, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
@@ -158,12 +160,14 @@ minmax = tk.IntVar()
 checkbutton = tk.Checkbutton(frame_left, text="Show local minmax (if applicable)", variable=minmax, onvalue=1, offvalue=0, bg=root.cget("bg")).pack(anchor="w")
 bounce_verlet = tk.IntVar()
 bounce_verlet_checkbox = tk.Checkbutton(frame_left, text="Bounce Verlet", variable=bounce_verlet, onvalue=1, offvalue=0, command=toggle_inputs, bg=root.cget("bg")).pack(anchor="w")
+bound_value = tk.IntVar()
+bound_checkbox = tk.Checkbutton(frame_left, text="Show bounding parabola", variable=bound_value, onvalue=1, offvalue=0, 
+                                bg=root.cget("bg")).pack(anchor="w")
 
 update_button = tk.Button(frame_left, text="Update Plot", command=update_plot, bg=root.cget("bg")).pack(anchor="w")
 save_button = tk.Button(frame_left, text="Save Line", command=save_line, bg=root.cget("bg")).pack(anchor="w")
 reset_button = tk.Button(frame_left, text="Reset Lines", command=reset_lines, bg=root.cget("bg")).pack(anchor="w")
 
-# Add labels and entries to the center frame
 for i in input_str:
     label = tk.Label(frame_center, text=f'{i}:')
     label.pack(anchor="w")
