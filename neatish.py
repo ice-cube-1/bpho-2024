@@ -1,7 +1,7 @@
-from sys import argv
 import tkinter as tk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.animation import FuncAnimation
 import math
 
 class Line():
@@ -23,15 +23,19 @@ class Line():
         else: 
             self.u = float(input_str['u'])
             self.t: tuple = self.tFromU(float(input_str['X']), float(input_str['Y']))
-    def plot(self) -> None:
+    
+    def plot(self) -> list[tuple[float, float]]:
+        paths = []
         for t in self.t:
-            if bounce_verlet.get() != 1: data: list[tuple[float, float]] = self.line(t)
-            else: data: list[tuple[float, float]] = self.bounceVerlet(t)
+            if bounce_verlet.get() != 1: 
+                data: list[tuple[float, float]] = self.line(t)
+            else: 
+                data: list[tuple[float, float]] = self.bounceVerlet(t)
+            paths.extend(data)
             self.getRange(t)
-            plt.plot([i[0] for i in data], [i[1] for i in data])
             if self.bound == 1:
                 self.boundParabola()
-
+        return paths
 
     def boundParabola(self) -> None:
         y: float = self.h; x: float = 0
@@ -104,12 +108,40 @@ class Line():
 
 def save_line(): lines.append(Line(input_str, minmax.get(), bound_value.get()))
 def reset_lines(): [lines.remove(lines[0]) for i in lines[:-1]]
+
+# Global variable to keep a reference to the animation
+ani = None
+
 def update_plot():
-    for i in input_str: input_str[i] = entry_labels[i][1].get()
+    global ani  # Keep the reference to the animation
+
+    # Prepare data
+    for i in input_str: 
+        input_str[i] = entry_labels[i][1].get()
     lines[-1] = Line(input_str, minmax.get(), bound_value.get())
     plt.clf()
-    for i in lines: i.plot(); i.print_info()
-    canvas.draw()
+
+    def animate(frame):
+        plt.clf()
+        for line in lines:
+            paths = line.plot()
+            if paths:
+                num_points = len(paths)
+                if frame < num_points:
+                    xdata, ydata = [i[0] for i in paths[:frame+1]], [i[1] for i in paths[:frame+1]]
+                    plt.plot(xdata, ydata)
+                    plt.scatter(xdata[-1], ydata[-1], c='r')  # Moving marker
+        canvas.draw()
+    if animate_value.get() == 0:
+        for line in lines:
+            paths = line.plot()
+            plt.plot([i[0] for i in paths], [i[1] for i in paths])
+    else:
+        # Determine the maximum number of frames needed
+        frames = max(len(line.plot()) for line in lines)
+        ani = FuncAnimation(fig, animate, frames=frames, interval=10, repeat=False)
+    canvas.draw()  # Ensure the canvas is updated
+
 
 def toggle_inputs(*args):
     # First, hide all widgets
@@ -124,7 +156,7 @@ def toggle_inputs(*args):
     elif options.get() == 3:
         pack(['u'])
     elif options.get() == 4:
-        pack(['X','Y','t','u'])
+        pack(['X','Y','u'])
     if bounce_verlet.get() == 1:
         pack(['N','k','c'])
 def pack(topack: list[str]):
@@ -161,8 +193,9 @@ checkbutton = tk.Checkbutton(frame_left, text="Show local minmax (if applicable)
 bounce_verlet = tk.IntVar()
 bounce_verlet_checkbox = tk.Checkbutton(frame_left, text="Bounce Verlet", variable=bounce_verlet, onvalue=1, offvalue=0, command=toggle_inputs, bg=root.cget("bg")).pack(anchor="w")
 bound_value = tk.IntVar()
-bound_checkbox = tk.Checkbutton(frame_left, text="Show bounding parabola", variable=bound_value, onvalue=1, offvalue=0, 
-                                bg=root.cget("bg")).pack(anchor="w")
+bound_checkbox = tk.Checkbutton(frame_left, text="Show bounding parabola", variable=bound_value, onvalue=1, offvalue=0, bg=root.cget("bg")).pack(anchor="w")
+animate_value = tk.IntVar()
+anim_checkbox = tk.Checkbutton(frame_left, text="Show animation", variable=animate_value, onvalue=1, offvalue=0, bg=root.cget("bg")).pack(anchor="w")
 
 update_button = tk.Button(frame_left, text="Update Plot", command=update_plot, bg=root.cget("bg")).pack(anchor="w")
 save_button = tk.Button(frame_left, text="Save Line", command=save_line, bg=root.cget("bg")).pack(anchor="w")
