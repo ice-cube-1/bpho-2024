@@ -37,8 +37,6 @@ u=10
 theta = thetaFromU(u,X,Y)
 line(theta[0],u) # high ball
 line(theta[1],u) # low ball
-theta = math.asin(1/(math.sqrt(2+((2*g*h)/u**2))))
-line(theta,u)
 u = math.sqrt(g)*math.sqrt(Y+math.sqrt(X**2+Y**2)) # minimum u
 theta = thetaFromU(u,X,Y)
 line(theta[0],u)
