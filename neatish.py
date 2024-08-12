@@ -109,42 +109,39 @@ class Line():
 def save_line(): lines.append(Line(input_str, minmax.get(), bound_value.get()))
 def reset_lines(): [lines.remove(lines[0]) for i in lines[:-1]]
 
-# Global variable to keep a reference to the animation
 ani = None
 
 def update_plot():
-    global ani  # Keep the reference to the animation
+    global ani
 
     # Prepare data
     for i in input_str: 
         input_str[i] = entry_labels[i][1].get()
     lines[-1] = Line(input_str, minmax.get(), bound_value.get())
     plt.clf()
-
-    def animate(frame):
-        plt.clf()
-        for line in lines:
-            paths = line.plot()
-            if paths:
-                num_points = len(paths)
-                if frame < num_points:
-                    xdata, ydata = [i[0] for i in paths[:frame+1]], [i[1] for i in paths[:frame+1]]
-                    plt.plot(xdata, ydata)
-                    plt.scatter(xdata[-1], ydata[-1], c='r')  # Moving marker
-        canvas.draw()
-    if animate_value.get() == 0:
-        for line in lines:
-            paths = line.plot()
+    for line in lines:
+        line.print_info()
+        paths = line.plot()
+        if animate_value.get() == 0:
             plt.plot([i[0] for i in paths], [i[1] for i in paths])
-    else:
-        # Determine the maximum number of frames needed
-        frames = max(len(line.plot()) for line in lines)
-        ani = FuncAnimation(fig, animate, frames=frames, interval=10, repeat=False)
+        else:
+            frames = max(len(line.plot()) for line in lines)
+            ani = FuncAnimation(fig, animate, frames=frames, interval=10, repeat=False)
     canvas.draw()  # Ensure the canvas is updated
 
 
+def animate(frame):
+    plt.clf()
+    for line in lines:
+        paths = line.plot()
+        if paths:
+            num_points = len(paths)
+            if frame < num_points:
+                xdata, ydata = [i[0] for i in paths[:frame+1]], [i[1] for i in paths[:frame+1]]
+                plt.plot(xdata, ydata)
+                plt.scatter(xdata[-1], ydata[-1], c='r')  # Moving marker
+
 def toggle_inputs(*args):
-    # First, hide all widgets
     for key in input_str.keys():
         entry_labels[key][0].pack_forget()
         entry_labels[key][1].pack_forget()
@@ -161,10 +158,12 @@ def toggle_inputs(*args):
         pack(['N','k','c'])
 def pack(topack: list[str]):
     for i in topack:
-        entry_labels[i][0].pack()
-        entry_labels[i][1].pack()
+        entry_labels[i][0].pack(padx=10)
+        entry_labels[i][1].pack(padx=10)
 
 input_str: dict[str, str] = {'g': '10', 't': '45', 'u': '2', 'h': '0', 'X': '', 'Y': '', 'N': '', 'k': '', 'c': ''}
+input_info: dict[str, str] = {'g': 'Gravity (g)', 't': 'theta (t, deg)', 'u': 'initial velocity (u)', 'h': 'initial height', 'X': 'X intersect', 
+                              'Y': 'Y intersect', 'N': 'number of bounces', 'k': 'air resistance', 'c': 'velocity loss / bounce'}
 root = tk.Tk()
 root.title("Projectile Motion Plot")
 fig, ax = plt.subplots()
@@ -174,43 +173,60 @@ canvas.get_tk_widget().pack()
 frame_left = tk.Frame(root)
 frame_center = tk.Frame(root)
 frame_right = tk.Frame(root)
+mainButtons = tk.Frame(frame_left)
+radio = tk.Frame(frame_left, bd=2, relief=tk.RAISED)
+checkboxes = tk.Frame(frame_left, bd=2, relief=tk.RAISED)
+inputs = tk.Frame(frame_center, bd=2, relief=tk.RAISED)
+info = tk.Frame(frame_right, bd=2, relief=tk.RAISED)
 
 frame_left.pack(side=tk.LEFT, padx=10, pady=10, anchor="n")
 frame_center.pack(side=tk.LEFT, padx=10, pady=10, anchor="n")
 frame_right.pack(side=tk.LEFT, padx=10, pady=10, anchor="n")
 
+# Change the packing direction for mainButtons and radio
+mainButtons.pack(side=tk.TOP, pady=10, anchor="n")
+radio.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
+checkboxes.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
+
+inputs.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
+info.pack(side=tk.TOP, padx=10, pady=10)
+
 options = tk.IntVar(value=1)
 lines: list[Line] = [Line(input_str, 0, 0)]
 entry_labels: dict[str, list] = {}
 
-r1 = tk.Radiobutton(frame_left, text="Path with angle / velocity", value=1, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
-r2 = tk.Radiobutton(frame_left, text="Minimum velocity to pass through XY", value=2, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
-r3 = tk.Radiobutton(frame_left, text="Maximum range for a given speed", value=3, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
-r4 = tk.Radiobutton(frame_left, text="Angle to pass through XY at a given speed", value=4, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
+label = tk.Label(radio, text=f'Inputs for graph:', justify=tk.LEFT, font=("TkDefaultFont",12)).pack(anchor="w", padx=10, pady=5)
+r1 = tk.Radiobutton(radio, text="Path with angle / velocity", value=1, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
+r2 = tk.Radiobutton(radio, text="Minimum velocity to pass through XY", value=2, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
+r3 = tk.Radiobutton(radio, text="Maximum range for a given speed", value=3, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
+r4 = tk.Radiobutton(radio, text="Angle to pass through XY at a given speed", value=4, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
 
+label = tk.Label(checkboxes, text=f'Extra features:', justify=tk.LEFT, font=("TkDefaultFont",12)).pack(anchor="w", padx=10, pady=5)
 minmax = tk.IntVar()
-checkbutton = tk.Checkbutton(frame_left, text="Show local minmax (if applicable)", variable=minmax, onvalue=1, offvalue=0, bg=root.cget("bg")).pack(anchor="w")
+checkbutton = tk.Checkbutton(checkboxes, text="Show local minmax (if applicable)", variable=minmax, onvalue=1, offvalue=0, bg=root.cget("bg")).pack(anchor="w")
 bounce_verlet = tk.IntVar()
-bounce_verlet_checkbox = tk.Checkbutton(frame_left, text="Bounce Verlet", variable=bounce_verlet, onvalue=1, offvalue=0, command=toggle_inputs, bg=root.cget("bg")).pack(anchor="w")
+bounce_verlet_checkbox = tk.Checkbutton(checkboxes, text="Bounce Verlet", variable=bounce_verlet, onvalue=1, offvalue=0, command=toggle_inputs, bg=root.cget("bg")).pack(anchor="w")
 bound_value = tk.IntVar()
-bound_checkbox = tk.Checkbutton(frame_left, text="Show bounding parabola", variable=bound_value, onvalue=1, offvalue=0, bg=root.cget("bg")).pack(anchor="w")
+bound_checkbox = tk.Checkbutton(checkboxes, text="Show bounding parabola", variable=bound_value, onvalue=1, offvalue=0, bg=root.cget("bg")).pack(anchor="w")
 animate_value = tk.IntVar()
-anim_checkbox = tk.Checkbutton(frame_left, text="Show animation", variable=animate_value, onvalue=1, offvalue=0, bg=root.cget("bg")).pack(anchor="w")
+anim_checkbox = tk.Checkbutton(checkboxes, text="Show animation", variable=animate_value, onvalue=1, offvalue=0, bg=root.cget("bg")).pack(anchor="w")
 
-update_button = tk.Button(frame_left, text="Update Plot", command=update_plot, bg=root.cget("bg")).pack(anchor="w")
-save_button = tk.Button(frame_left, text="Save Line", command=save_line, bg=root.cget("bg")).pack(anchor="w")
-reset_button = tk.Button(frame_left, text="Reset Lines", command=reset_lines, bg=root.cget("bg")).pack(anchor="w")
-
+update_button = tk.Button(mainButtons, text="Update Plot", command=update_plot, bg=root.cget("bg"), justify=tk.CENTER, width=35).pack(anchor="center", padx=10, pady=5)
+save_button = tk.Button(mainButtons, text="Save Line", command=save_line, bg=root.cget("bg"), justify=tk.CENTER, width=35).pack(anchor="center", padx=10, pady=5)
+reset_button = tk.Button(mainButtons, text="Reset Lines", command=reset_lines, bg=root.cget("bg"), justify=tk.CENTER,width=35).pack(anchor="center", padx=10, pady=5)
+label = tk.Label(inputs, text=f'Inputs:', justify=tk.LEFT, font=("TkDefaultFont",12)).pack(anchor="w", padx=10, pady=5)
 for i in input_str:
-    label = tk.Label(frame_center, text=f'{i}:')
-    label.pack(anchor="w")
-    entry = tk.Entry(frame_center, bg=root.cget("bg"))
+    label = tk.Label(inputs, text=f'{input_info[i]}:', justify=tk.LEFT)
+    label.pack(anchor="w", padx=10)
+    entry = tk.Entry(inputs, bg=root.cget("bg"))
     entry.insert(0, str(input_str[i]))
-    entry.pack(anchor="w")
+    entry.pack(anchor="w", padx=10)
     entry_labels[i] = [label, entry]
-
-text_output = tk.Text(frame_right, height=25, width=40, bd=0, bg=root.cget("bg"))
-text_output.pack()
+bottom_padding = tk.Label(inputs, text="", height=1)
+bottom_padding.pack(side=tk.BOTTOM, fill=tk.X)
+label = tk.Label(info, text=f'Graph info:', justify=tk.LEFT, font=("TkDefaultFont",12)).pack(anchor="w", padx=10, pady=5)
+text_output = tk.Text(info, bg=root.cget("bg"), font=("TkDefaultFont",10), width=20, height=15)
+text_output.pack(padx=10,pady=5)
 
 
 root.mainloop()
