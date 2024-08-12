@@ -163,28 +163,33 @@ def update_plot():
         input_str[i] = entry_labels[i][1].get()
     lines[-1] = Line(input_str, minmax.get(), bound_value.get())
     plt.clf()
+    all_paths = []
     for line in lines:
         line.print_info()
         paths = line.plot()
+        all_paths.append(paths)
         if animate_value.get() == 0:
             for path in paths:
                 plt.plot([i[0] for i in path], [i[1] for i in path])
-        else:
-            frames = max(len(line.plot()) for line in lines)
-            ani = FuncAnimation(fig, animate, frames=frames, interval=10, repeat=False)
+
+    if animate_value.get() == 1:
+        frames = max(len(path) for paths in all_paths for path in paths)
+        ani = FuncAnimation(fig, animate, fargs=(all_paths,), frames=frames, interval=10, repeat=False)
+
     canvas.draw()
 
-def animate(frame):
+def animate(frame, all_paths):
     '''animates the graph'''
     plt.clf()
-    for line in lines:
-        paths = line.plot()
-        if paths:
-            num_points = len(paths)
-            if frame < num_points:
-                xdata, ydata = [i[0] for i in paths[:frame+1]], [i[1] for i in paths[:frame+1]]
+    for paths in all_paths:
+        for path in paths:
+            if frame < len(path):
+                xdata = [i[0] for i in path[:frame+1]]
+                ydata = [i[1] for i in path[:frame+1]]
                 plt.plot(xdata, ydata)
                 plt.scatter(xdata[-1], ydata[-1], c='r')
+
+
 
 def save():
     '''saves animation / png depending whether they last viewed an animation or still graph'''
