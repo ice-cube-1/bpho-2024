@@ -1,7 +1,7 @@
 import tkinter as tk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, PillowWriter
 import math
 
 class Line():
@@ -53,7 +53,8 @@ class Line():
             outval: dict[str, float] = {"t (rad)": t, "t (deg)": math.degrees(t), "U": self.u,
                                         "VX": math.cos(t)*self.u, "VY": math.sin(t)*self.u,
                                         "ToF": self.getRange(t)/(self.u*math.cos(t)), "Range": self.getRange(t),
-                                        "Distance": self.distance(t)}
+                                        "Distance": self.distance(t), "Apogee xa": (self.u*math.cos(t))*(self.u*math.sin(t))/self.g,
+                                        "Apogee ya": self.yfromx(t, (self.u*math.cos(t))*(self.u*math.sin(t))/self.g)}
             for i in outval:
                 text_output.insert(tk.END, f"{i}: {round(outval[i], 3)}\n")
             if t >= math.asin(2*math.sqrt(2)/3) and self.minmax == 1:
@@ -113,8 +114,6 @@ ani = None
 
 def update_plot():
     global ani
-
-    # Prepare data
     for i in input_str: 
         input_str[i] = entry_labels[i][1].get()
     lines[-1] = Line(input_str, minmax.get(), bound_value.get())
@@ -127,8 +126,7 @@ def update_plot():
         else:
             frames = max(len(line.plot()) for line in lines)
             ani = FuncAnimation(fig, animate, frames=frames, interval=10, repeat=False)
-    canvas.draw()  # Ensure the canvas is updated
-
+    canvas.draw()
 
 def animate(frame):
     plt.clf()
@@ -139,9 +137,15 @@ def animate(frame):
             if frame < num_points:
                 xdata, ydata = [i[0] for i in paths[:frame+1]], [i[1] for i in paths[:frame+1]]
                 plt.plot(xdata, ydata)
-                plt.scatter(xdata[-1], ydata[-1], c='r')  # Moving marker
+                plt.scatter(xdata[-1], ydata[-1], c='r')
 
-def toggle_inputs(*args):
+def save():
+    global ani
+    if animate_value.get() == 1:
+        ani.save("anim.gif", writer=PillowWriter(fps=20))
+    plt.savefig("plot.png")
+
+def toggle_inputs():
     for key in input_str.keys():
         entry_labels[key][0].pack_forget()
         entry_labels[key][1].pack_forget()
@@ -178,28 +182,23 @@ radio = tk.Frame(frame_left, bd=2, relief=tk.RAISED)
 checkboxes = tk.Frame(frame_left, bd=2, relief=tk.RAISED)
 inputs = tk.Frame(frame_center, bd=2, relief=tk.RAISED)
 info = tk.Frame(frame_right, bd=2, relief=tk.RAISED)
-
 frame_left.pack(side=tk.LEFT, padx=10, pady=10, anchor="n")
 frame_center.pack(side=tk.LEFT, padx=10, pady=10, anchor="n")
 frame_right.pack(side=tk.LEFT, padx=10, pady=10, anchor="n")
-
-# Change the packing direction for mainButtons and radio
 mainButtons.pack(side=tk.TOP, pady=10, anchor="n")
 radio.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
 checkboxes.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
-
 inputs.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
 info.pack(side=tk.TOP, padx=10, pady=10)
 
 options = tk.IntVar(value=1)
 lines: list[Line] = [Line(input_str, 0, 0)]
 entry_labels: dict[str, list] = {}
-
 label = tk.Label(radio, text=f'Inputs for graph:', justify=tk.LEFT, font=("TkDefaultFont",12)).pack(anchor="w", padx=10, pady=5)
-r1 = tk.Radiobutton(radio, text="Path with angle / velocity", value=1, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
-r2 = tk.Radiobutton(radio, text="Minimum velocity to pass through XY", value=2, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
-r3 = tk.Radiobutton(radio, text="Maximum range for a given speed", value=3, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
-r4 = tk.Radiobutton(radio, text="Angle to pass through XY at a given speed", value=4, variable=options, command=lambda: toggle_inputs(options.get())).pack(anchor="w")
+r1 = tk.Radiobutton(radio, text="Path with angle / velocity", value=1, variable=options, command=toggle_inputs).pack(anchor="w")
+r2 = tk.Radiobutton(radio, text="Minimum velocity to pass through XY", value=2, variable=options, command=toggle_inputs).pack(anchor="w")
+r3 = tk.Radiobutton(radio, text="Maximum range for a given speed", value=3, variable=options, command=toggle_inputs).pack(anchor="w")
+r4 = tk.Radiobutton(radio, text="Angle to pass through XY at a given speed", value=4, variable=options, command=toggle_inputs).pack(anchor="w")
 
 label = tk.Label(checkboxes, text=f'Extra features:', justify=tk.LEFT, font=("TkDefaultFont",12)).pack(anchor="w", padx=10, pady=5)
 minmax = tk.IntVar()
@@ -214,6 +213,8 @@ anim_checkbox = tk.Checkbutton(checkboxes, text="Show animation", variable=anima
 update_button = tk.Button(mainButtons, text="Update Plot", command=update_plot, bg=root.cget("bg"), justify=tk.CENTER, width=35).pack(anchor="center", padx=10, pady=5)
 save_button = tk.Button(mainButtons, text="Save Line", command=save_line, bg=root.cget("bg"), justify=tk.CENTER, width=35).pack(anchor="center", padx=10, pady=5)
 reset_button = tk.Button(mainButtons, text="Reset Lines", command=reset_lines, bg=root.cget("bg"), justify=tk.CENTER,width=35).pack(anchor="center", padx=10, pady=5)
+save_file = tk.Button(mainButtons, text="Save as PNG / GIF", command=save, bg=root.cget("bg"), justify=tk.CENTER, width=35).pack(anchor="center", padx=10, pady=5)
+
 label = tk.Label(inputs, text=f'Inputs:', justify=tk.LEFT, font=("TkDefaultFont",12)).pack(anchor="w", padx=10, pady=5)
 for i in input_str:
     label = tk.Label(inputs, text=f'{input_info[i]}:', justify=tk.LEFT)
